@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PDFJS</title>
+    <meta name="description" content="Testing pdf.js" />
+
+    <!-- hack code -->
+    <base href="https://mozilla.github.io" />
+    <!-- pdf js script -->
+    <script src="//mozilla.github.io/pdf.js/build/pdf.js"></script>
+    <!-- jquery -->
+    <script
+      src="https://code.jquery.com/jquery-3.6.0.min.js"
+      integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+      crossorigin="anonymous"
+    ></script>
+    <!-- print none  -->
+    <style type="text/css" media="print">
+      * {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- pdf content start -->
+    <div id="AllContent">
+      <div
+        id="canvas"
+        style="overflow-y: scroll; width: auto; height: 500px"
+      ></div>
+    </div>
+    <!-- pdf content end -->
+    <script>
+      // file url
+      // don't forget to change the url and don't use extention .pdf 
+      var url = "./Réalisation";
+
+      var PDFJS = window["pdfjs-dist/build/pdf"];
+
+      PDFJS.GlobalWorkerOptions.workerSrc =
+        "//mozilla.github.io/pdf.js/build/pdf.worker.js";
+
+      var loadingTask = PDFJS.getDocument(url);
+
+      loadingTask.promise.then(
+        function (pdf) {
+          var canvasdiv = document.getElementById("canvas");
+          var totalPages = pdf.numPages;
+          var data = [];
+
+          for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+            pdf.getPage(pageNumber).then(function (page) {
+              var scale = 1.5;
+              var viewport = page.getViewport({ scale: scale });
+
+              var canvas = document.createElement("canvas");
+              canvasdiv.appendChild(canvas);
+
+              // Prepare canvas using PDF page dimensions
+              var context = canvas.getContext("2d");
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+
+              // Render PDF page into canvas context
+              var renderContext = {
+                canvasContext: context,
+                viewport: viewport,
+              };
+
+              var renderTask = page.render(renderContext);
+              renderTask.promise.then(function () {
+                data.push(canvas.toDataURL("image/png"));
+                console.log(data.length + " page(s) loaded in data");
+              });
+            });
+          }
+        },
+        function (reason) {
+          // PDF loading error
+          console.error(reason);
+        }
+      );
+
+      // show white page  Ctrl + P
+      if ("matchMedia" in window) {
+        // Chrome, Firefox, and IE 10 support mediaMatch listeners
+        window.matchMedia("print").addListener(function (media) {
+          if (media.matches) {
+            beforePrint();
+          } else {
+            // Fires immediately, so wait for the first mouse movement
+            $(document).one("mouseover", afterPrint);
+          }
+        });
+      } else {
+        // IE and Firefox fire before/after events
+        $(window).on("beforeprint", beforePrint);
+        $(window).on("afterprint", afterPrint);
+      }
+      function beforePrint() {
+        $("#AllContent").hide();
+        $(".PrintMessage").show();
+      }
+
+      function afterPrint() {
+        $(".PrintMessage").hide();
+        $("#AllContent").show();
+      }
+    </script>
+  </body>
+</html>
